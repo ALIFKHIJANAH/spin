@@ -96,7 +96,7 @@ export function SpinWheel() {
     text: string;
     color: string;
   }>();
-  const [long_spin, setLongSpin] = useState<number>(10);
+  const [long_spin, setLongSpin] = useState<number>(3);
   const [timelist, setTimeList] = useState([3, 5, 7, 10]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,7 +110,6 @@ export function SpinWheel() {
         // }
         setIsFullscreen(true);
       } catch (err) {
-        console.error("Error attempting to enable fullscreen:", err);
       }
     } else {
       if (document.fullscreenElement) {
@@ -134,7 +133,6 @@ export function SpinWheel() {
   useEffect(() => {
     const dataRef = ref(database, "/");
     const unsubscribe = onValue(dataRef, (snapshot) => {
-      console.log(snapshot.val());
       setData(snapshot.val());
     });
 
@@ -144,10 +142,10 @@ export function SpinWheel() {
   // Store the final rotation value
   const [finalRotation, setFinalRotation] = useState(0);
   useEffect(() => {
-    spinningSound.current = new Audio("./spin.mp3");
-    yeaySound.current = new Audio("./yeay.mp3");
+    spinningSound.current = new Audio(`./Drum${long_spin}dtk.mp3`);
+    yeaySound.current = new Audio("./Hooray.mp3");
     spinningSound.current.loop = true;
-  }, []);
+  }, [long_spin]);
 
   const handleAddOption = () => {
     if (newOption.trim() === "") return;
@@ -188,8 +186,6 @@ export function SpinWheel() {
   };
 
   const handleRemoveWinner = () => {
-    console.log("click");
-    console.log(winningId, "winner");
     if (winningId && options.length > 1) {
       setOptions(options.filter((option) => option.id !== winningId));
       setShowModal(false);
