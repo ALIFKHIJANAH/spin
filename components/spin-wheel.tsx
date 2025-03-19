@@ -7,6 +7,24 @@ import { Input } from "@/components/ui/input"
 import { Plus, X, RotateCcw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import confetti from "canvas-confetti"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { database } from "../lib/firebaseConfig";
+import { ref, onValue } from "firebase/database";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const defaultOptions = [
   { id: "1", text: "Option 1", color: "#FF6384" },
@@ -32,7 +50,7 @@ const colorPalette = [
 ]
 
 export function SpinWheel() {
-  // ...existing state...
+  const [data, setData] = useState({ last_pick : "" });
   const spinningSound = useRef<HTMLAudioElement | null>(null);
   const [options, setOptions] = useState(defaultOptions);
   const [newOption, setNewOption] = useState("");
@@ -43,6 +61,21 @@ export function SpinWheel() {
   const [winningIndex, setWinningIndex] = useState<number | null>(null);
   const wheelRef = useRef<HTMLDivElement>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [showModal,setShowModal] = useState(false);
+  const [last_pick,setLastPick] = useState<{ id : string,text : string, color : string }>()
+  const [long_spin,setLongSpin] = useState<number>(10);
+  const [timelist,setTimeList] = useState([3,5,7,10]);
+
+
+  useEffect(() => {
+    const dataRef = ref(database, "/");
+    const unsubscribe = onValue(dataRef, (snapshot) => {
+      console.log(snapshot.val())
+      setData(snapshot.val());
+    });
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, []);
 
   // Store the final rotation value
   const [finalRotation, setFinalRotation] = useState(0);
@@ -56,6 +89,13 @@ export function SpinWheel() {
 
     const newId = (options.length + 1).toString();
     const colorIndex = options.length % colorPalette.length;
+    if(newOption == data?.last_pick){
+      setLastPick({
+        id: newId,
+        text: newOption,
+        color: colorPalette[colorIndex],
+      });
+    }
 
     setOptions([
       ...options,
@@ -73,9 +113,21 @@ export function SpinWheel() {
     setOptions(options.filter((option) => option.id !== id));
   };
 
+  const handleRemoveWinner = () => {
+    if (winningId && options.length > 1) {
+      setOptions(options.filter((option) => option.id !== winningId));
+      setShowModal(false);
+      setWinner(null);
+      setWinningId(null);
+      setWinningIndex(null);
+    }
+  };
+
   // This function will be called when the animation completes
   const handleAnimationComplete = () => {
     if (!isSpinning) return;
+    setShowModal(true)
+
     if (spinningSound.current) {
       spinningSound.current.pause();
     }
@@ -111,7 +163,7 @@ export function SpinWheel() {
     // Trigger confetti
     confetti({
       particleCount: 200,
-      spread: 70,
+      spread: 100,
       origin: { y: 0.6 },
     });
 
@@ -131,6 +183,27 @@ export function SpinWheel() {
   const spinWheel = () => {
     if (isSpinning) return;
 
+    // Find the target option (Option 4)
+    const availableOptions = options.filter((opt) => opt.id !== last_pick?.id);
+    const targetOption =
+      availableOptions[Math.floor(Math.random() * availableOptions.length)];
+    if (!targetOption) {
+      return;
+    }
+    const targetIndex = options.indexOf(targetOption);
+
+    // Calculate required spin parameters
+    const segmentAngle = 360 / options.length;
+    const targetEffectiveRotation = (targetIndex + 0.5) * segmentAngle;
+    const requiredFinalRotationMod = (360 - targetEffectiveRotation) % 360;
+    const currentRotationMod = rotation % 360;
+    let delta = requiredFinalRotationMod - currentRotationMod;
+    if (delta < 0) delta += 360;
+
+    // Add random full spins (5-10 rotations)
+    const fullSpins = 5 + Math.floor(Math.random() * 6);
+    const spinAmount = delta + fullSpins * 360;
+
     // Play the spinning sound
     if (spinningSound.current) {
       spinningSound.current.currentTime = 0;
@@ -144,12 +217,14 @@ export function SpinWheel() {
     setIsSpinning(true);
 
     // Spin between 5-10 full rotations
-    const spinAmount = 1800 + Math.floor(Math.random() * 1800);
-    const newRotation = rotation + spinAmount;
+    // const spinAmount = 1800 + Math.floor(Math.random() * 1800);
+    // const newRotation = rotation + spinAmount;
 
     // Store the final rotation for winner calculation
-    setFinalRotation(newRotation);
-    setRotation(newRotation);
+    // setFinalRotation(newRotation);
+    // setRotation(newRotation);
+    setFinalRotation(rotation + spinAmount);
+    setRotation(rotation + spinAmount);
   };
 
   return (
@@ -186,7 +261,7 @@ export function SpinWheel() {
             rotate: rotation,
           }}
           transition={{
-            duration: 3,
+            duration: long_spin,
             ease: [0.2, 0.5, 0.3, 1],
           }}
           onAnimationComplete={handleAnimationComplete}
@@ -286,6 +361,30 @@ export function SpinWheel() {
         )}
       </div>
 
+      <div className="flex flex-col sm:flex-row w-full max-w-md gap-4 mb-4">
+        <div className="w-[100px] items-center">
+          <label htmlFor="select" className="text-white">
+            Time
+          </label>
+        </div>
+        <Select
+          onValueChange={(e) => {
+            setLongSpin(parseInt(e))
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Seconds" />
+          </SelectTrigger>
+          <SelectContent>
+            {timelist.map((time) => {
+              return (
+                <SelectItem key={time} value={time.toString()}>{time} second</SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="w-full max-w-md mt-4">
         <h3 className="text-lg font-semibold mb-2 text-slate-200">
           Current Options
@@ -324,6 +423,29 @@ export function SpinWheel() {
           ))}
         </div>
       </div>
+      <Dialog open={showModal} onOpenChange={(open) => setShowModal(open)}>
+        {/* <DialogTrigger asChild>
+          <Button variant="outline">Edit Profile</Button>
+        </DialogTrigger> */}
+        <DialogContent className="sm:max-w-[425px] bg-green-100">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-center">
+              Winner !!
+            </DialogTitle>
+            <DialogDescription></DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <h3 className="text-3xl font-bold text-green-500 text-center">
+              {winner}
+            </h3>
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={handleRemoveWinner}>
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
