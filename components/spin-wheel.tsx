@@ -77,7 +77,7 @@ export function SpinWheel() {
     text: name,
     color: colorPalette[Math.floor(Math.random() * colorPalette.length)],
   }));
-  const [data, setData] = useState({ last_pick: "" });
+  const [data, setData] = useState({ last_pick: "",third_pick : '' });
   const spinningSound = useRef<HTMLAudioElement | null>(null);
   const yeaySound = useRef<HTMLAudioElement | null>(null);
   const [options, setOptions] = useState(defaultOptions);
@@ -91,6 +91,11 @@ export function SpinWheel() {
   const [notification, setNotification] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [last_pick, setLastPick] = useState<{
+    id: string;
+    text: string;
+    color: string;
+  }>();
+  const [third_pick, setThirdPick] = useState<{
     id: string;
     text: string;
     color: string;
@@ -166,7 +171,22 @@ export function SpinWheel() {
         },
       ]);
       setNewOption("");
-    } else {
+    } else if(newOption == data?.third_pick){
+      setThirdPick({
+        id: newId + 999,
+        text: newOption,
+        color: colorPalette[colorIndex],
+      });
+       setOptions([
+         ...options,
+         {
+           id: newId + 999,
+           text: newOption.trim(),
+           color: colorPalette[colorIndex],
+         },
+       ]);
+       setNewOption("");
+    }else {
       setOptions([
         ...options,
         {
@@ -256,7 +276,16 @@ export function SpinWheel() {
     if (isSpinning) return;
 
     // Find the target option (Option 4)
-    const availableOptions = options.filter((opt) => opt.id !== last_pick?.id);
+    var availableOptions;
+    if(options.length > 3 || options.length <= 2){
+      availableOptions = options.filter(
+        (opt) => opt.id !== last_pick?.id && opt.id !== third_pick?.id
+      );
+    }else{
+      availableOptions = options.filter(
+        (opt) => opt.id == third_pick?.id
+      );
+    }
     const targetOption =
       availableOptions[Math.floor(Math.random() * availableOptions.length)];
     if (!targetOption) {
