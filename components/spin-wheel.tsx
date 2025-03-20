@@ -46,7 +46,6 @@ const nameList = [
   "Putra",
   "Ansor",
   "Ali",
-  "Agung",
   "Aris",
   "Eko",
   "Kabul",
