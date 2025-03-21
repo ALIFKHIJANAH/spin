@@ -275,16 +275,18 @@ export function SpinWheel() {
     if (isSpinning) return;
 
     // Find the target option (Option 4)
-    var availableOptions;
-    if(options.length > 3 || options.length <= 2){
-      availableOptions = options.filter(
-        (opt) => opt.id !== last_pick?.id && opt.id !== third_pick?.id
-      );
-    }else{
-      availableOptions = options.filter(
-        (opt) => opt.id == third_pick?.id
-      );
-    }
+    // var availableOptions;
+    // if(options.length > 3 || options.length <= 2){
+    //   availableOptions = options.filter(
+    //     (opt) => opt.id !== last_pick?.id && opt.id !== third_pick?.id
+    //   );
+    // }else{
+    //   availableOptions = options.filter(
+    //     (opt) => opt.id == third_pick?.id
+    //   );
+    // }
+    const availableOptions = options.filter(
+        (opt) => opt.id !== last_pick?.id);
     const targetOption =
       availableOptions[Math.floor(Math.random() * availableOptions.length)];
     if (!targetOption) {
